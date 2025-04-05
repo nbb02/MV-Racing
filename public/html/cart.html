@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Cart</title>
+        <script>
+            document.addEventListener("DOMContentLoaded", async () => {
+                const token = localStorage.getItem("token");
+                if (!token) {
+                    alert("No bearer token found in localStorage.");
+                    return;
+                }
+
+                try {
+                    const response = await fetch("/api/products", {
+                        headers: {
+                            Authorization: `Bearer ${token}`,
+                        },
+                    });
+
+                    if (!response.ok) {
+                        throw new Error("Failed to fetch products");
+                    }
+
+                    const products = await response.json();
+                    const productContainer =
+                        document.getElementById("product-container");
+
+                    products.forEach((product) => {
+                        const productCard = document.createElement("div");
+                        productCard.className = "product-card";
+
+                        productCard.innerHTML = `
+                        <h3>${product.name}</h3>
+                        <p>${product.description}</p>
+                        <p>Price: $${product.price}</p>
+                        <p>Stock: ${product.stock}</p>
+                        <div>
+                            ${product.images
+                                .map(
+                                    (image) =>
+                                        `<img src="${image.image}" alt="Product Image" width="100">`
+                                )
+                                .join("")}
+                        </div>
+                        <button class="add-to-cart" data-id="${
+                            product.id
+                        }">Add to Cart</button>
+                    `;
+
+                        productContainer.appendChild(productCard);
+
+                        const addToCartButton =
+                            productCard.querySelector(".add-to-cart");
+                        addToCartButton.addEventListener("click", async () => {
+                            const payload = {
+                                product_id: product.id,
+                                quantity: 1,
+                            };
+
+                            if (product.motor_types)
+                                payload.motor_types = product.motor_types[0];
+                            if (product.colors)
+                                payload.colors = product.colors[0];
+                            if (product.designs)
+                                payload.designs = product.designs[0];
+                            if (product.types) payload.types = product.types[0];
+
+                            try {
+                                const cartResponse = await fetch("/api/cart", {
+                                    method: "POST",
+                                    headers: {
+                                        "Content-Type": "application/json",
+                                        Authorization: `Bearer ${token}`,
+                                    },
+                                    body: JSON.stringify(payload),
+                                });
+
+                                if (!cartResponse.ok) {
+                                    throw new Error("Failed to add to cart");
+                                }
+
+                                alert("Product added to cart successfully!");
+                            } catch (error) {
+                                console.error(error);
+                                alert("Error adding product to cart.");
+                            }
+                        });
+                    });
+                } catch (error) {
+                    console.error(error);
+                    alert("Error fetching products.");
+                }
+            });
+        </script>
+        <style>
+            .product-card {
+                border: 1px solid #ccc;
+                padding: 16px;
+                margin: 16px;
+                border-radius: 8px;
+            }
+
+            .product-card img {
+                margin: 8px 0;
+            }
+
+            .product-card button {
+                background-color: #007bff;
+                color: white;
+                border: none;
+                padding: 8px 16px;
+                cursor: pointer;
+                border-radius: 4px;
+            }
+
+            .product-card button:hover {
+                background-color: #0056b3;
+            }
+        </style>
+    </head>
+    <body>
+        <h1>Products</h1>
+        <div id="product-container"></div>
+    </body>
+</html>
