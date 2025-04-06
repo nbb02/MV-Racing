@@ -3,6 +3,7 @@
 use App\Http\Controllers\AddressesController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CartsController;
+use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\OrdersController;
 use App\Http\Controllers\ProductsController;
 use App\Http\Controllers\QRController;
@@ -53,6 +54,7 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
         Route::delete('/cart/{id}', [CartsController::class, 'destroy']);
 
         Route::post('/orders', [OrdersController::class, 'store']);
+        Route::get('/orders/{id}/receive', [OrdersController::class, 'receive']);
         Route::post('/orders/payment-proof', [OrdersController::class, 'sendProofOfPayment']);
 
         Route::get('/qr', [QRController::class, 'index']);
@@ -77,17 +79,18 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
 
         Route::post('/product-stocks', [ProductsController::class, 'stocks']);
 
-        Route::post('/orders/{id}/decline', [OrdersController::class, 'decline']);
+        Route::post('/orders/{id}/update', [OrdersController::class, 'update']);
         Route::get('/orders/{id}/accept-payment', [OrdersController::class, 'acceptPayment']);
         Route::post('/orders/{id}/ship', [OrdersController::class, 'ship']);
         Route::post('/orders/{id}/tracking', [OrdersController::class, 'addTracking']);
         Route::post('/orders/{id}/delivered', [OrdersController::class, 'delivered']);
-
 
         Route::post('/qr', [QRController::class, 'store']);
         Route::delete('/qr/{id}', [QRController::class, 'destroy']);
 
         Route::post('/product-selections', [ProductsController::class, 'addSelection']);
         Route::delete('/product-selections', [ProductsController::class, 'deleteSelection']);
+
+        Route::get('/dashboard', [DashboardController::class, 'index']);
     });
 });

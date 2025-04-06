@@ -17,7 +17,7 @@ return new class extends Migration
             $table->foreign('user_id')->references('id')->on('users');
             $table->bigInteger('address_id')->unsigned();
             $table->foreign('address_id')->references('id')->on('addresses');
-            $table->enum('status', ["to pay", "to ship", "shipped", "delivered", "cancelled", "declined"]);
+            $table->enum('status', ["for approval", "to pay", "to ship", "shipped", "delivered", "received", "cancelled", "declined"]);
             $table->enum('payment_method', ["Gcash", "Cash on Delivery"]);
             $table->float('total');
             $table->string('tracking_no')->nullable();

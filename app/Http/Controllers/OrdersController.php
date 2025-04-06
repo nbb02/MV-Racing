@@ -83,6 +83,9 @@ class OrdersController extends Controller
                 ]], 409);
             }
 
+            $_product_stock->stocks -= $item['quantity'];
+            $_product_stock->save();
+
             $order_item_total =  $item['quantity'] * $product['price'];
             $total += $order_item_total;
 
@@ -99,7 +102,7 @@ class OrdersController extends Controller
         }
 
         $order = Orders::create(array_merge($validated, [
-            'status' => $validated['payment_method'] == 'Gcash' ? 'to pay' : 'to ship',
+            'status' => 'for approval',
             'total' => $total
         ]));
 
@@ -114,6 +117,30 @@ class OrdersController extends Controller
         }
 
         $order->items = $items;
+        return response()->json($order);
+    }
+
+    public function update(Request $request, $id)
+    {
+        $request->validate([
+            'status' => 'required|string|in:accept,decline',
+            'reason' => 'required_if:status,decline|string',
+        ]);
+
+        $order = Orders::findOrFail($id);
+
+        if ($order->status !== 'for approval') {
+            return response()->json(['message' => 'Order is not for approval'], 409);
+        }
+
+        $order->status = $request->status === 'accept' ? (
+            $order->payment_method === 'Cash on Delivery' ? 'to ship' : 'to pay'
+        ) : 'declined';
+        if ($request->status === 'decline') {
+            $order->reason = $request->reason;
+        }
+        $order->save();
+
         return response()->json($order);
     }
 
@@ -135,6 +162,10 @@ class OrdersController extends Controller
         ]);
 
         $order = Orders::findOrFail($validated['order_id']);
+
+        if ($order->status !== 'to pay') {
+            return response()->json(['message' => 'Order is not ready to be paid'], 409);
+        }
 
         foreach ($request->file('proof_of_payments') as $file) {
 
@@ -286,25 +317,30 @@ class OrdersController extends Controller
         ]);
     }
 
-    public function decline(Request $request, $id)
+    public function receive($id)
     {
-        $request->validate([
-            'reason' => 'string'
-        ]);
-
         $order = Orders::findOrFail($id);
 
-        if ($order->status === 'declined' || ($order->status !== 'to ship' && $order->status !== 'to pay')) {
-            return response()->json(['message' => 'Order is already declined'], 409);
+        if ($order->status === 'received') {
+            return response()->json(['message' => 'Order is already received'], 409);
         }
 
-        $order->status = 'declined';
-        $order->decline_reason = $request->reason;
+        if ($order->status !== 'delivered') {
+            return response()->json(['message' => 'Order is not delivered'], 409);
+        }
+
+        $order->status = 'received';
         $order->save();
 
+        Trackings::create([
+            'order_id' => $order->id,
+            'title' => 'Order received',
+            'description' => "Package has been Received by the customer;",
+        ]);
+
         return response()->json([
-            'message' => 'Order cancelled successfully',
-            'order' => $order
+            'message' => 'Order received successfully',
+            'order' => $order->load(['trackings'])
         ]);
     }
 }
